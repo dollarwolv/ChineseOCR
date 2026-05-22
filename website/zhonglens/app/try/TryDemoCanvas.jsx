@@ -2,9 +2,9 @@
 
 import { useEffect, useRef } from "react";
 
-const DEMO_LINE = "我今天终于明白了。";
+const DEMO_LINE = "原来学中文可以这么容易！";
 
-export default function TryDemoCanvas() {
+export default function TryDemoCanvas({ completed = false }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -40,6 +40,57 @@ export default function TryDemoCanvas() {
     ctx.fillStyle = "rgba(0,0,0,0.32)";
     ctx.fillRect(0, 0, cssWidth, cssHeight);
 
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.lineJoin = "round";
+    ctx.miterLimit = 2;
+
+    if (completed) {
+      ctx.fillStyle = "rgba(2, 6, 23, 0.72)";
+      roundRect(ctx, 136, 124, 768, 230, 24);
+      ctx.fill();
+
+      ctx.font =
+        '700 40px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.strokeStyle = "rgba(0,0,0,0.55)";
+      ctx.lineWidth = 5;
+      ctx.strokeText("You're ready to use ZhongLens!", cssWidth / 2, 208);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText("You're ready to use ZhongLens!", cssWidth / 2, 208);
+
+      ctx.font =
+        '600 24px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.strokeStyle = "rgba(0,0,0,0.45)";
+      ctx.lineWidth = 4;
+      ctx.strokeText(
+        "Tip: press CTRL + O to start, CTRL + L to close.",
+        cssWidth / 2,
+        258,
+      );
+      ctx.fillStyle = "#d1fae5";
+      ctx.fillText(
+        "Tip: press CTRL + O to start, CTRL + L to close.",
+        cssWidth / 2,
+        258,
+      );
+
+      ctx.font =
+        '600 20px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.strokeStyle = "rgba(0,0,0,0.45)";
+      ctx.lineWidth = 3;
+      ctx.strokeText(
+        "No popup? Install a pop-up dictionary, turn it on, refresh, then try again.",
+        cssWidth / 2,
+        314,
+      );
+      ctx.fillStyle = "#fef3c7";
+      ctx.fillText(
+        "No popup? Install a pop-up dictionary, turn it on, refresh, then try again.",
+        cssWidth / 2,
+        314,
+      );
+    }
+
     const subtitleWidth = 680;
     const subtitleX = (cssWidth - subtitleWidth) / 2;
     const subtitleY = 430;
@@ -47,10 +98,6 @@ export default function TryDemoCanvas() {
     roundRect(ctx, subtitleX, subtitleY, subtitleWidth, 86, 16);
     ctx.fill();
 
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.lineJoin = "round";
-    ctx.miterLimit = 2;
     ctx.font =
       '700 54px "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", "Heiti SC", sans-serif';
 
@@ -62,7 +109,7 @@ export default function TryDemoCanvas() {
 
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
-  }, []);
+  }, [completed]);
 
   return (
     <canvas
