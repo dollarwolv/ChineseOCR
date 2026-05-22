@@ -2,6 +2,9 @@ import { syncCloudOcrFreeUseCount } from "./cloudOcrUsage";
 import { captureEvent } from "../../lib/posthog";
 
 const DEFAULT_CAPTION_TEXT_COLOR = "#f8fafc";
+const WEBSITE_URL = (
+  import.meta.env.VITE_WEBSITE_URL || "https://www.zhonglens.dev"
+).replace(/\/$/, "");
 
 async function ensureInstallTrackingState({ syncUsage = false } = {}) {
   const syncStorage = await chrome.storage.sync.get([
@@ -98,8 +101,9 @@ export function initGeneralHandlers() {
       hasCompletedOnboarding: false,
     });
 
+    // start onboarding
     await chrome.tabs.create({
-      url: chrome.runtime.getURL("/onboarding.html"),
+      url: `${WEBSITE_URL}/try?source=install`,
     });
 
     void captureEvent("installed");
