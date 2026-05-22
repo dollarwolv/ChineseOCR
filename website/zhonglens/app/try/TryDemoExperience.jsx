@@ -92,7 +92,12 @@ export default function TryDemoExperience() {
       {!popupOpened && <OpenExtensionHint />}
 
       <section className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-7xl flex-col justify-center gap-6">
-        <div id="demo-frame" className="mx-auto w-full max-w-4xl">
+        <div
+          id="demo-frame"
+          // The extension uses this marker on /try to crop OCR to the demo only.
+          data-zhonglens-demo-target
+          className="mx-auto w-full max-w-4xl"
+        >
           <div
             className={`relative rounded-3xl border bg-[#fffdf8] p-3 shadow-xl shadow-[#3d2f22]/12 transition duration-500 ${
               scanCompleted

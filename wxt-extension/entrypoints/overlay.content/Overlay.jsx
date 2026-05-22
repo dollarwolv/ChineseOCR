@@ -24,6 +24,8 @@ const TRY_PAGE_HOSTS = new Set([
   "localhost",
   "127.0.0.1",
 ]);
+// The try page marks the demo frame so tutorial instructions are not OCR'd.
+const TRY_PAGE_DEMO_TARGET_SELECTOR = "[data-zhonglens-demo-target]";
 
 function isTryPage() {
   const normalizedPathname = window.location.pathname.replace(/\/$/, "");
@@ -66,6 +68,41 @@ function waitForNextPaint() {
       requestAnimationFrame(resolve);
     });
   });
+}
+
+function getTryPageDemoCropOverride({ cssW, cssH }) {
+  // Only the onboarding demo gets an automatic crop; normal pages use settings.
+  if (!isTryPage()) {
+    return null;
+  }
+
+  const target = document.querySelector(TRY_PAGE_DEMO_TARGET_SELECTOR);
+  const rect = target?.getBoundingClientRect();
+
+  if (!rect) {
+    return null;
+  }
+
+  const visualViewport = window.visualViewport;
+  const viewportOffsetX = visualViewport?.offsetLeft ?? 0;
+  const viewportOffsetY = visualViewport?.offsetTop ?? 0;
+  // Convert the target's viewport rect into the CSS-pixel crop coordinates
+  // expected by the background OCR pipeline.
+  const cropXStart = Math.max(0, Math.floor(rect.left - viewportOffsetX));
+  const cropYStart = Math.max(0, Math.floor(rect.top - viewportOffsetY));
+  const cropXEnd = Math.min(cssW, Math.ceil(rect.right - viewportOffsetX));
+  const cropYEnd = Math.min(cssH, Math.ceil(rect.bottom - viewportOffsetY));
+
+  if (cropXEnd - cropXStart < 20 || cropYEnd - cropYStart < 20) {
+    return null;
+  }
+
+  return {
+    cropXStart,
+    cropYStart,
+    cropXEnd,
+    cropYEnd,
+  };
 }
 
 export default ({ onClose }) => {
@@ -134,8 +171,20 @@ export default ({ onClose }) => {
     }, OVERLAY_CHROME_REVEAL_DELAY_MS);
     setLoading(true);
     const { cssW, cssH } = getViewportCssSize();
+    // On /try, crop this one scan to the demo frame so changing instructions
+    // never become part of the OCR result.
+    const cropOverride = getTryPageDemoCropOverride({ cssW, cssH });
     setStatus("Processing image...");
-    const res = await sendMessage("CAPTURE_TAB", { cssW, cssH }, "background");
+    const res = await sendMessage(
+      "CAPTURE_TAB",
+      {
+        cssW,
+        cssH,
+        cropOverride,
+        disableCropAfterCapture: Boolean(cropOverride),
+      },
+      "background",
+    );
     if (!res.ok) {
       const fullErrorCode = res?.error || "OCR failed.";
       const eventProperties = await getOcrAnalyticsProperties({
