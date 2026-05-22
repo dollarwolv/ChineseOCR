@@ -7,6 +7,33 @@ import { getOcrAnalyticsProperties } from "@/lib/ocrAnalytics";
 import { sendMessage } from "webext-bridge/content-script";
 
 const OCR_POPOVER_ID = "zhonglens-ocr-overlay-popover";
+const TRY_PAGE_HOSTS = new Set([
+  "zhonglens.dev",
+  "www.zhonglens.dev",
+  "localhost",
+  "127.0.0.1",
+]);
+
+function isTryPage() {
+  const normalizedPathname = window.location.pathname.replace(/\/$/, "");
+
+  return (
+    normalizedPathname === "/try" && TRY_PAGE_HOSTS.has(window.location.hostname)
+  );
+}
+
+function postTryPageEvent(payload) {
+  if (!isTryPage()) return;
+
+  window.postMessage(
+    {
+      source: "zhonglens-extension",
+      version: 1,
+      ...payload,
+    },
+    window.location.origin,
+  );
+}
 
 // Popovers use the browser top layer like modal dialogs, but they do not make
 // the rest of the document inert. That keeps OCR text compatible with popup
@@ -149,10 +176,21 @@ export default defineContentScript({
     });
 
     chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+      if (msg?.type === "ZHONGLENS_TRY_POPUP_OPENED") {
+        postTryPageEvent({
+          type: "ZHONGLENS_POPUP_OPENED",
+        });
+        sendResponse({ ok: true });
+        return; // sync response
+      }
+
       if (msg?.type === "TOGGLE_OCR_OVERLAY") {
         try {
           if (!ui.mounted) {
             ui.mount();
+            postTryPageEvent({
+              type: "ZHONGLENS_CAPTURE_TAB_CLICKED",
+            });
             sendResponse({ ok: true, mounted: true });
           } else {
             ui.remove();

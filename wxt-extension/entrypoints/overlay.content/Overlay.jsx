@@ -18,6 +18,47 @@ import OverlayToolbar from "./OverlayToolbar";
 const OVERLAY_CHROME_REVEAL_DELAY_MS = 50;
 const TOOLBAR_AUTO_HIDE_DELAY_MS = 50;
 const TOOLBAR_AUTO_SHOW_DELAY_MS = 100;
+const TRY_PAGE_HOSTS = new Set([
+  "zhonglens.dev",
+  "www.zhonglens.dev",
+  "localhost",
+  "127.0.0.1",
+]);
+
+function isTryPage() {
+  const normalizedPathname = window.location.pathname.replace(/\/$/, "");
+
+  return (
+    normalizedPathname === "/try" && TRY_PAGE_HOSTS.has(window.location.hostname)
+  );
+}
+
+function postTryPageEvent(payload) {
+  if (!isTryPage()) return;
+
+  window.postMessage(
+    {
+      source: "zhonglens-extension",
+      version: 1,
+      ...payload,
+    },
+    window.location.origin,
+  );
+}
+
+function notifyTryPageOcrCompleted({ mode, textBlocksCount }) {
+  postTryPageEvent({
+    type: "ZHONGLENS_OCR_COMPLETED",
+    processing_mode: mode,
+    text_blocks_count: textBlocksCount,
+  });
+}
+
+function notifyTryPageOcrTextHovered() {
+  postTryPageEvent({
+    type: "ZHONGLENS_OCR_TEXT_HOVERED",
+  });
+}
 
 function waitForNextPaint() {
   return new Promise((resolve) => {
@@ -187,6 +228,10 @@ export default ({ onClose }) => {
     setLoading(false);
     setOverlayChromeVisible(true);
     window.clearTimeout(overlayChromeTimerRef.current);
+    notifyTryPageOcrCompleted({
+      mode,
+      textBlocksCount: data.length,
+    });
   }
 
   async function updateOverlaySetting(updates) {
@@ -329,6 +374,8 @@ export default ({ onClose }) => {
     };
 
     const handleOcrTextHover = (event) => {
+      notifyTryPageOcrTextHovered();
+
       // lightDomTextLayer decides whether the hovered OCR text sits in the
       // toolbar's area. Bottom-third text asks the toolbar to fade out.
       updateToolbarAutoHiddenAfterDelay(

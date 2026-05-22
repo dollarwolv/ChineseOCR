@@ -187,6 +187,23 @@ function App() {
     });
   }
 
+  async function notifyTryPagePopupOpened() {
+    try {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+
+      if (!tab?.id) return;
+
+      await chrome.tabs.sendMessage(tab.id, {
+        type: "ZHONGLENS_TRY_POPUP_OPENED",
+      });
+    } catch {
+      // The active tab may not have the ZhongLens content script loaded.
+    }
+  }
+
   useEffect(() => {
     (async () => {
       const settingsFromStorage = await chrome.storage.sync.get(null);
@@ -195,6 +212,7 @@ function App() {
         Number(settingsFromStorage.cloudOcrFreeUseCount) || 0,
       );
       void capturePopupOpened(settingsFromStorage);
+      void notifyTryPagePopupOpened();
       getOverlayState("CROP");
       getOverlayState("OCR");
       getLoginStatus();
