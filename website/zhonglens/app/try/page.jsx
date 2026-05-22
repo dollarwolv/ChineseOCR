@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function TryPage() {
   return (
-    <main className="min-h-screen bg-[#f8fafc] px-4 py-5 text-slate-950 sm:px-6">
+    <main className="min-h-screen bg-[#f7f2ea] px-4 py-5 text-[#191510] sm:px-6">
       <TryDemoExperience />
     </main>
   );

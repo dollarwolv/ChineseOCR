@@ -27,20 +27,20 @@ export default function TryDemoCanvas({
     ctx.scale(dpr, dpr);
 
     const gradient = ctx.createLinearGradient(0, 0, cssWidth, cssHeight);
-    gradient.addColorStop(0, "#172554");
-    gradient.addColorStop(0.42, "#0f766e");
-    gradient.addColorStop(1, "#111827");
+    gradient.addColorStop(0, "#2a241d");
+    gradient.addColorStop(0.46, "#6f3f2e");
+    gradient.addColorStop(1, "#191510");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, cssWidth, cssHeight);
 
-    ctx.fillStyle = "rgba(255,255,255,0.06)";
+    ctx.fillStyle = "rgba(255,253,248,0.07)";
     for (let i = 0; i < 9; i += 1) {
       ctx.beginPath();
       ctx.arc(120 + i * 120, 120 + Math.sin(i) * 52, 80, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    ctx.fillStyle = "rgba(0,0,0,0.32)";
+    ctx.fillStyle = "rgba(25,21,16,0.34)";
     ctx.fillRect(0, 0, cssWidth, cssHeight);
 
     ctx.textAlign = "center";
@@ -140,7 +140,7 @@ export default function TryDemoCanvas({
   return (
     <canvas
       ref={canvasRef}
-      className="block aspect-video w-full rounded-lg bg-slate-950 shadow-2xl"
+      className="block aspect-video w-full rounded-2xl bg-slate-950 shadow-2xl"
       aria-label="Demo video frame with burned-in Chinese subtitles for ZhongLens OCR"
     />
   );

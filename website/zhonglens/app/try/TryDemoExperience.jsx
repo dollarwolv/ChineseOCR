@@ -2,17 +2,33 @@
 
 import { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
-import { CheckCircle2, MousePointer2, ScanLine } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import TryDemoCanvas from "./TryDemoCanvas";
 
 const ZHONGWEN_URL =
   "https://chromewebstore.google.com/detail/zhongwen-chinese-english/kkmlkkjojmombglmlpbpapmhcaljjkde";
 
 export default function TryDemoExperience() {
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
   const [popupOpened, setPopupOpened] = useState(false);
   const [captureClicked, setCaptureClicked] = useState(false);
   const [scanCompleted, setScanCompleted] = useState(false);
   const [textHovered, setTextHovered] = useState(false);
+  const activeStep = textHovered ? -1 : scanCompleted ? 2 : popupOpened ? 1 : 0;
+  const steps = [
+    {
+      text: "Open ZhongLens",
+      complete: popupOpened || captureClicked || scanCompleted || textHovered,
+    },
+    {
+      text: "Capture Tab",
+      complete: captureClicked || scanCompleted || textHovered,
+    },
+    {
+      text: "Hover Chinese",
+      complete: textHovered,
+    },
+  ];
 
   useEffect(() => {
     function handleMessage(event) {
@@ -44,56 +60,44 @@ export default function TryDemoExperience() {
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
+  if (!welcomeDismissed) {
+    return (
+      <section className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-5xl items-center justify-center px-2">
+        <div className="w-full max-w-2xl rounded-4xl border border-[#ded6c9] bg-[#fffdf8] px-8 py-12 text-center shadow-2xl shadow-[#3d2f22]/10 sm:px-12 sm:py-14">
+          <p className="mb-4 text-sm font-semibold tracking-[0.18em] text-[#8f4f36] uppercase">
+            20-second tutorial
+          </p>
+          <h1 className="text-4xl font-bold leading-tight tracking-tight text-[#191510] sm:text-5xl">
+            Welcome to ZhongLens!
+          </h1>
+          <p className="mx-auto mt-5 max-w-lg text-lg leading-8 text-[#665f55]">
+            ZhongLens turns Chinese text in images and videos into hoverable
+            text, so you can use a pop-up dictionary anywhere.
+          </p>
+          <button
+            type="button"
+            onClick={() => setWelcomeDismissed(true)}
+            className="mt-9 inline-flex items-center cursor-pointer justify-center gap-2 rounded-full bg-[#191510] px-6 py-3 text-base font-bold text-[#fffdf8] shadow-lg shadow-[#3d2f22]/15 transition hover:bg-[#2a241d] focus-visible:ring-2 focus-visible:ring-[#8f4f36] focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            See how it works
+            <ArrowRight className="size-5" />
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <>
       {!popupOpened && <OpenExtensionHint />}
 
-      <section className="mx-auto grid min-h-[calc(100vh-2.5rem)] max-w-7xl items-center gap-8 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <div className="mx-auto w-full max-w-6xl lg:max-w-none">
-          <div className="mb-5">
-            <h1 className="text-5xl font-bold tracking-tight">
-              Welcome to ZhongLens!
-            </h1>
-            <p className="mt-3 text-base leading-7 text-slate-600">
-              ZhongLens turns Chinese text in images and videos into hoverable
-              text, which will let you use a pop-up dictionary anywhere. Try it
-              now!
-            </p>
-          </div>
-
-          <aside className="rounded-lg border border-teal-300 bg-teal-50 p-4 shadow-lg shadow-teal-900/10">
-            <h2 className="text-3xl font-bold tracking-tight">
-              Complete this quick tutorial
-            </h2>
-
-            <ol className="mt-4 space-y-3">
-              <Step
-                active={!popupOpened}
-                complete={popupOpened || captureClicked || scanCompleted}
-                icon={<CheckCircle2 className="size-5" />}
-                text="Open ZhongLens"
-              />
-              <Step
-                active={popupOpened && !captureClicked}
-                complete={captureClicked || scanCompleted}
-                icon={<ScanLine className="size-5" />}
-                text="Click Capture Tab"
-              />
-              <Step
-                active={scanCompleted && !textHovered}
-                complete={textHovered}
-                icon={<MousePointer2 className="size-5" />}
-                text="Hover Chinese"
-              />
-            </ol>
-          </aside>
-        </div>
-        <div id="demo-frame" className="mx-auto w-full max-w-6xl">
+      <section className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-7xl flex-col justify-center gap-6">
+        <div id="demo-frame" className="mx-auto w-full max-w-4xl">
           <div
-            className={`relative rounded-xl border bg-white p-3 shadow-xl transition duration-500 ${
+            className={`relative rounded-3xl border bg-[#fffdf8] p-3 shadow-xl shadow-[#3d2f22]/12 transition duration-500 ${
               scanCompleted
-                ? "border-teal-300 shadow-teal-200/70"
-                : "border-slate-200"
+                ? "border-[#c8795a] shadow-[#8f4f36]/15"
+                : "border-[#ded6c9]"
             }`}
           >
             <TryDemoCanvas
@@ -105,15 +109,50 @@ export default function TryDemoExperience() {
                 href={ZHONGWEN_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="absolute top-[60%] left-1/2 inline-flex -translate-x-1/2 items-center justify-center rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-slate-950 shadow-lg transition hover:bg-slate-100"
+                className="absolute top-[60%] left-1/2 inline-flex -translate-x-1/2 items-center justify-center rounded-full bg-[#fffdf8] px-5 py-2.5 text-sm font-bold text-[#191510] shadow-lg ring-1 ring-[#ded6c9] transition hover:bg-[#f3eadf]"
               >
                 Install Pop-up dictionary
               </a>
             )}
           </div>
         </div>
+
+        <header className="mx-auto w-full max-w-5xl">
+          <Stepper steps={steps} activeStep={activeStep} />
+          <p className="mx-auto mt-5 min-h-9 max-w-3xl text-center text-xl font-semibold text-[#3d2f22] sm:text-2xl">
+            {getInstruction({ popupOpened, scanCompleted, textHovered })}
+          </p>
+        </header>
       </section>
     </>
+  );
+}
+
+function getInstruction({ popupOpened, scanCompleted, textHovered }) {
+  if (textHovered) return "Done. You are ready to use ZhongLens.";
+  if (scanCompleted) return "Hover the Chinese subtitle in the demo frame.";
+  if (popupOpened)
+    return "Great! Now click Capture Tab in the ZhongLens popup.";
+  return "Open ZhongLens from the Chrome toolbar on the top right.";
+}
+
+function Stepper({ steps, activeStep }) {
+  return (
+    <ol className="relative mx-auto grid max-w-4xl grid-cols-3 gap-3 px-2">
+      <span
+        className="absolute top-6 right-[16%] left-[16%] h-px bg-[#d8cfc2]"
+        aria-hidden="true"
+      />
+      {steps.map((step, index) => (
+        <Step
+          key={step.text}
+          active={activeStep === index}
+          complete={step.complete}
+          number={index + 1}
+          text={step.text}
+        />
+      ))}
+    </ol>
   );
 }
 
@@ -155,12 +194,12 @@ function shootConfetti() {
 
 function OpenExtensionHint() {
   return (
-    <div className="pointer-events-none fixed top-0 right-20 z-50 hidden h-24 md:block">
-      <div className="absolute top-12 right-22 text-xl font-bold leading-tight text-teal-800 drop-shadow-[0_2px_8px_rgba(15,23,42,0.3)] w-[19ch]">
+    <div className="pointer-events-none fixed top-0 right-22 z-50 hidden h-24 md:block">
+      <div className="absolute top-10 right-16 w-[19ch] text-xl font-bold leading-tight text-[#8f4f36] drop-shadow-[0_2px_8px_rgba(61,47,34,0.18)]">
         Open ZhongLens Here
       </div>
       <svg
-        className="h-24 w-28 overflow-visible text-teal-700 drop-shadow-sm"
+        className="h-20 w-24 overflow-visible text-[#8f4f36] drop-shadow-sm"
         viewBox="0 0 302.816 302.816"
         fill="currentColor"
         aria-hidden="true"
@@ -180,20 +219,24 @@ function OpenExtensionHint() {
   );
 }
 
-function Step({ active = false, complete = false, icon, text }) {
+function Step({ active = false, complete = false, number, text }) {
   return (
-    <li className="flex items-center gap-3">
+    <li className="relative z-10 flex min-w-0 flex-col items-center text-center">
       <span
-        className={`flex size-8 shrink-0 items-center justify-center rounded-md border transition ${
+        className={`flex size-12 shrink-0 items-center justify-center rounded-full border text-base font-bold transition ${
           complete
-            ? "border-teal-600 bg-teal-600 text-white"
-            : "border-slate-300 bg-slate-100 text-slate-400"
+            ? "border-[#191510] bg-[#191510] text-[#fffdf8]"
+            : active
+              ? "border-[#8f4f36] bg-[#8f4f36] text-[#fffdf8]"
+              : "border-[#d8cfc2] bg-[#f7f2ea] text-[#81766a]"
         }`}
       >
-        {complete ? <CheckCircle2 className="size-5" /> : icon}
+        {complete ? <CheckCircle2 className="size-5" /> : number}
       </span>
       <span
-        className={`text-lg font-semibold ${active ? "text-teal-800" : ""}`}
+        className={`mt-3 truncate text-base font-semibold leading-tight sm:text-lg ${
+          active ? "text-[#191510]" : "text-[#665f55]"
+        }`}
       >
         {text}
       </span>
