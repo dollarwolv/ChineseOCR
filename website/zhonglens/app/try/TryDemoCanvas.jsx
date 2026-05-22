@@ -4,7 +4,10 @@ import { useEffect, useRef } from "react";
 
 const DEMO_LINE = "原来学中文可以这么容易！";
 
-export default function TryDemoCanvas({ completed = false }) {
+export default function TryDemoCanvas({
+  completed = false,
+  readyToHover = false,
+}) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -54,10 +57,13 @@ export default function TryDemoCanvas({ completed = false }) {
         '700 40px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.strokeStyle = "rgba(0,0,0,0.55)";
       ctx.lineWidth = 5;
-      ctx.strokeText("You're ready to use ZhongLens!", cssWidth / 2, 208);
+      ctx.strokeText(
+        "Great! You're ready to use ZhongLens.",
+        cssWidth / 2,
+        208,
+      );
       ctx.fillStyle = "#ffffff";
-      ctx.fillText("You're ready to use ZhongLens!", cssWidth / 2, 208);
-
+      ctx.fillText("Great! You're ready to use ZhongLens.", cssWidth / 2, 208);
       ctx.font =
         '600 24px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.strokeStyle = "rgba(0,0,0,0.45)";
@@ -89,6 +95,26 @@ export default function TryDemoCanvas({ completed = false }) {
         cssWidth / 2,
         314,
       );
+    } else if (readyToHover) {
+      ctx.fillStyle = "rgba(2, 6, 23, 0.72)";
+      roundRect(ctx, 210, 176, 620, 112, 22);
+      ctx.fill();
+
+      ctx.font =
+        '700 34px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.strokeStyle = "rgba(0,0,0,0.55)";
+      ctx.lineWidth = 5;
+      ctx.strokeText("Hover the Chinese text", cssWidth / 2, 222);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText("Hover the Chinese text", cssWidth / 2, 222);
+
+      ctx.font =
+        '600 22px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.strokeStyle = "rgba(0,0,0,0.45)";
+      ctx.lineWidth = 4;
+      ctx.strokeText("to see the pop-up dictionary.", cssWidth / 2, 260);
+      ctx.fillStyle = "#d1fae5";
+      ctx.fillText("to see the pop-up dictionary.", cssWidth / 2, 260);
     }
 
     const subtitleWidth = 680;
@@ -109,7 +135,7 @@ export default function TryDemoCanvas({ completed = false }) {
 
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
-  }, [completed]);
+  }, [completed, readyToHover]);
 
   return (
     <canvas

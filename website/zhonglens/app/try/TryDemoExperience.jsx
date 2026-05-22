@@ -61,8 +61,8 @@ export default function TryDemoExperience() {
             </p>
           </div>
 
-          <aside className="rounded-lg border border-slate-200 bg-white/88 p-4 shadow-sm">
-            <h2 className="text-lg font-bold tracking-tight">
+          <aside className="rounded-lg border border-teal-300 bg-teal-50 p-4 shadow-lg shadow-teal-900/10">
+            <h2 className="text-3xl font-bold tracking-tight">
               Complete this quick tutorial
             </h2>
 
@@ -83,12 +83,10 @@ export default function TryDemoExperience() {
                 active={scanCompleted && !textHovered}
                 complete={textHovered}
                 icon={<MousePointer2 className="size-5" />}
-                text="Click page and hover Chinese"
+                text="Hover Chinese"
               />
             </ol>
           </aside>
-
-          <div className="mt-5 min-h-32" />
         </div>
         <div id="demo-frame" className="mx-auto w-full max-w-6xl">
           <div
@@ -98,7 +96,10 @@ export default function TryDemoExperience() {
                 : "border-slate-200"
             }`}
           >
-            <TryDemoCanvas completed={textHovered} />
+            <TryDemoCanvas
+              completed={textHovered}
+              readyToHover={scanCompleted && !textHovered}
+            />
             {textHovered && (
               <a
                 href={ZHONGWEN_URL}
