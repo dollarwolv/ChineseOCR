@@ -79,7 +79,7 @@ export default function TryDemoExperience() {
             onClick={() => setWelcomeDismissed(true)}
             className="mt-9 inline-flex items-center cursor-pointer justify-center gap-2 rounded-full bg-[#191510] px-6 py-3 text-base font-bold text-[#fffdf8] shadow-lg shadow-[#3d2f22]/15 transition hover:bg-[#2a241d] focus-visible:ring-2 focus-visible:ring-[#8f4f36] focus-visible:ring-offset-2 focus-visible:outline-none"
           >
-            See how it works
+            Get started!
             <ArrowRight className="size-5" />
           </button>
         </div>
@@ -92,6 +92,9 @@ export default function TryDemoExperience() {
       {!popupOpened && <OpenExtensionHint />}
 
       <section className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-7xl flex-col justify-center gap-6">
+        <p className="mx-auto mt-5 min-h-9 max-w-3xl text-center text-xl font-semibold text-[#3d2f22] sm:text-3xl">
+          {getInstruction({ popupOpened, scanCompleted, textHovered })}
+        </p>
         <div
           id="demo-frame"
           // The extension uses this marker on /try to crop OCR to the demo only.
@@ -124,9 +127,6 @@ export default function TryDemoExperience() {
 
         <header className="mx-auto w-full max-w-5xl">
           <Stepper steps={steps} activeStep={activeStep} />
-          <p className="mx-auto mt-5 min-h-9 max-w-3xl text-center text-xl font-semibold text-[#3d2f22] sm:text-2xl">
-            {getInstruction({ popupOpened, scanCompleted, textHovered })}
-          </p>
         </header>
       </section>
     </>
@@ -135,10 +135,9 @@ export default function TryDemoExperience() {
 
 function getInstruction({ popupOpened, scanCompleted, textHovered }) {
   if (textHovered) return "Done. You are ready to use ZhongLens.";
-  if (scanCompleted) return "Hover the Chinese subtitle in the demo frame.";
-  if (popupOpened)
-    return "Great! Now click Capture Tab in the ZhongLens popup.";
-  return "Open ZhongLens from the Chrome toolbar on the top right.";
+  if (scanCompleted) return "Step 3: Hover the Chinese subtitle.";
+  if (popupOpened) return "Step 2: Click Capture Tab in the popup.";
+  return "Step 1: Open ZhongLens from the Chrome toolbar.";
 }
 
 function Stepper({ steps, activeStep }) {
@@ -177,12 +176,6 @@ function shootConfetti() {
     particleCount: 90,
     scalar: 1,
     angle: 72,
-  });
-  confetti({
-    ...defaults,
-    particleCount: 90,
-    scalar: 1,
-    angle: 108,
   });
 
   window.setTimeout(() => {

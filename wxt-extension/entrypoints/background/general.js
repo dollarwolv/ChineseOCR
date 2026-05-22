@@ -83,6 +83,7 @@ export function initGeneralHandlers() {
       closeOCRShortcut: ["ctrl", "l"],
       openCropShortcut: ["ctrl", "u"],
       closeCropShortcut: ["ctrl", "i"],
+      hasPressedCaptureTabButton: false,
     };
 
     chrome.storage.sync.set(defaultSettings);
@@ -99,6 +100,7 @@ export function initGeneralHandlers() {
 
     await chrome.storage.sync.set({
       hasCompletedOnboarding: false,
+      hasPressedCaptureTabButton: false,
     });
 
     // start onboarding

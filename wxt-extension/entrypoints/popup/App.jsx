@@ -8,6 +8,7 @@ import {
   Fullscreen,
   LogIn,
   CircleHelp,
+  ArrowDown,
   X,
 } from "lucide-react";
 import zhongLensIcon from "@/assets/icon_zi_full.png";
@@ -98,6 +99,7 @@ function App() {
       if (overlayType === "OCR") {
         setOCROverlayOpen(res.mounted);
         if (res.mounted) {
+          markCaptureTabButtonPressed();
           // Track the user's intent before the OCR overlay starts processing.
           const properties = await getOcrAnalyticsProperties({
             trigger: "popup",
@@ -234,11 +236,13 @@ function App() {
 
   useEffect(() => {
     const handleStorageChange = (changes, areaName) => {
-      if (areaName !== "sync" || !changes.cloudOcrFreeUseCount) return;
+      if (areaName !== "sync") return;
 
-      setCloudOcrFreeUseCount(
-        Number(changes.cloudOcrFreeUseCount.newValue) || 0,
-      );
+      if (changes.cloudOcrFreeUseCount) {
+        setCloudOcrFreeUseCount(
+          Number(changes.cloudOcrFreeUseCount.newValue) || 0,
+        );
+      }
     };
 
     chrome.storage.onChanged.addListener(handleStorageChange);
@@ -265,6 +269,26 @@ function App() {
   const cloudOcrRemainingCount = getRemainingCloudOcrUses(cloudOcrFreeUseCount);
   const cropModeEnabled = Boolean(settings.crop);
   const cloudOcrEnabled = Boolean(settings.serverProcessingEnabled);
+  const hasPressedCaptureTabButton = Boolean(
+    settings.hasPressedCaptureTabButton,
+  );
+  const showCaptureTabArrow =
+    settings.hasCompletedOnboarding === false &&
+    !hasPressedCaptureTabButton &&
+    !OCROverlayOpen;
+
+  function markCaptureTabButtonPressed() {
+    setSettings((prev) => ({
+      ...prev,
+      hasPressedCaptureTabButton: true,
+    }));
+
+    chrome.storage.sync
+      .set({ hasPressedCaptureTabButton: true })
+      .catch((err) => {
+        console.warn("Failed to persist Capture Tab onboarding state:", err);
+      });
+  }
 
   function toggleCropMode() {
     const newCrop = !cropModeEnabled;
@@ -322,15 +346,18 @@ function App() {
         <img src="/icon/128.png" alt="ZhongLens logo" className="w-10" />
         <h1 className="text-2xl">ZhongLens v0.1</h1>
       </div>
-      <button
-        className="bg-beige mx-auto flex h-50 cursor-pointer flex-col items-center justify-center rounded-lg px-3.5 py-2 shadow-lg"
-        onClick={() => controlOverlay("OCR")}
-      >
-        <img src={zhongLensIcon} className="w-35" alt="" />
-        <span className="text-2xl font-semibold whitespace-nowrap">
-          {OCROverlayOpen ? "Close overlay" : "Capture Tab"}
-        </span>
-      </button>
+      <div className={`relative mx-auto ${showCaptureTabArrow ? "mt-5" : ""}`}>
+        {showCaptureTabArrow && <CaptureTabHint />}
+        <button
+          className="bg-beige flex h-50 cursor-pointer flex-col items-center justify-center rounded-lg px-3.5 py-2 shadow-lg"
+          onClick={() => controlOverlay("OCR")}
+        >
+          <img src={zhongLensIcon} className="w-35" alt="" />
+          <span className="text-2xl font-semibold whitespace-nowrap">
+            {OCROverlayOpen ? "Close overlay" : "Capture Tab"}
+          </span>
+        </button>
+      </div>
       <div className="flex flex-col gap-2">
         {!settings?.hasCompletedOnboarding && (
           <button
@@ -523,6 +550,20 @@ function App() {
           </span>
         )}
       </div>
+    </div>
+  );
+}
+
+function CaptureTabHint() {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute -top-8 left-1/2 z-10 flex -translate-x-1/2 items-center justify-center gap-1 whitespace-nowrap text-[#8f4f36] drop-shadow-[0_2px_8px_rgba(61,47,34,0.18)]"
+    >
+      <span className="text-base leading-tight font-bold">
+        Click Capture Tab
+      </span>
+      <ArrowDown className="size-6 translate-y-0.5 stroke-[3]" />
     </div>
   );
 }
