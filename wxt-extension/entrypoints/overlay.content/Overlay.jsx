@@ -71,7 +71,7 @@ function waitForNextPaint() {
 }
 
 function getTryPageDemoCropOverride({ cssW, cssH }) {
-  // Only the onboarding demo gets an automatic crop; normal pages use settings.
+  // Only the /try demo gets an automatic crop; normal pages use settings.
   if (!isTryPage()) {
     return null;
   }
@@ -120,6 +120,7 @@ export default ({ onClose }) => {
   const [overlayChromeVisible, setOverlayChromeVisible] = useState(false);
   const [toolbarAutoHidden, setToolbarAutoHidden] = useState(false);
   const overlayChromeTimerRef = useRef(null);
+  const tryPageOnboardingCompletedRef = useRef(false);
   // The auto-hide refs keep delayed hover work predictable. React state drives
   // rendering, while these refs let timeout/event callbacks see the latest
   // timer, current state, and already-scheduled state without re-rendering.
@@ -424,6 +425,14 @@ export default ({ onClose }) => {
 
     const handleOcrTextHover = (event) => {
       notifyTryPageOcrTextHovered();
+
+      if (isTryPage() && !tryPageOnboardingCompletedRef.current) {
+        tryPageOnboardingCompletedRef.current = true;
+        chrome.storage.sync.set({ hasCompletedOnboarding: true }).catch(() => {
+          tryPageOnboardingCompletedRef.current = false;
+        });
+        void captureEvent("onboarding_completed", { source: "try_page" });
+      }
 
       // lightDomTextLayer decides whether the hovered OCR text sits in the
       // toolbar's area. Bottom-third text asks the toolbar to fade out.

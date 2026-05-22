@@ -27,6 +27,11 @@ import { useEffect, useState } from "react";
 import { captureEvent } from "@/lib/posthog";
 import { getOcrAnalyticsProperties } from "@/lib/ocrAnalytics";
 
+const WEBSITE_URL = (
+  import.meta.env.VITE_WEBSITE_URL || "https://www.zhonglens.dev"
+).replace(/\/$/, "");
+const TRY_PAGE_URL = `${WEBSITE_URL}/try`;
+
 function App() {
   const [settings, setSettings] = useState({});
   const [error, setError] = useState("");
@@ -365,7 +370,7 @@ function App() {
             onClick={() => {
               void captureEvent("onboarding_opened");
               chrome.tabs.create({
-                url: chrome.runtime.getURL("/onboarding.html"),
+                url: `${TRY_PAGE_URL}?source=popup`,
               });
             }}
           >

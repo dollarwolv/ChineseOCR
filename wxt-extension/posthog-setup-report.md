@@ -6,7 +6,7 @@ The wizard has completed a deep integration of PostHog analytics into ZhongLens,
 ## Summary of changes
 
 - **`entrypoints/popup/main.jsx`**: Initialized PostHog with `posthog.init()` using environment variables, wrapped the app with `PostHogProvider` and `PostHogErrorBoundary` for automatic error tracking.
-- **`entrypoints/popup/App.jsx`**: Added `usePostHog` hook; captures `ocr_overlay_toggled`, `crop_mode_toggled`, `cloud_ocr_toggled`, `crop_region_selection_opened`, and `onboarding_opened` events in their respective click handlers.
+- **`entrypoints/popup/App.jsx`**: Added `usePostHog` hook; captures `ocr_overlay_toggled`, `crop_mode_toggled`, `cloud_ocr_toggled`, `crop_region_selection_opened`, and `onboarding_opened` events in their respective click handlers. The onboarding link opens the website `/try` page.
 - **`components/login-form.jsx`**: Added `usePostHog`; on successful login calls `posthog.identify(email)` and captures `user_signed_in`.
 - **`components/signup-form.jsx`**: Added `usePostHog`; on successful signup calls `posthog.identify(email)` and captures `user_signed_up` with an `email_confirmation_required` property.
 - **`entrypoints/popup/Profile.jsx`**: Added `usePostHog`; captures `email_updated`, `password_updated`, `user_signed_out` (with `posthog.reset()` to clear identity), and `customer_portal_opened`.
@@ -22,7 +22,7 @@ The wizard has completed a deep integration of PostHog analytics into ZhongLens,
 | `crop_mode_toggled` | User toggles crop mode on or off | `entrypoints/popup/App.jsx` |
 | `cloud_ocr_toggled` | User toggles Cloud OCR on or off | `entrypoints/popup/App.jsx` |
 | `crop_region_selection_opened` | User opens the crop region selector overlay | `entrypoints/popup/App.jsx` |
-| `onboarding_opened` | User clicks to open the onboarding tab | `entrypoints/popup/App.jsx` |
+| `onboarding_opened` | User clicks to open the website `/try` tutorial | `entrypoints/popup/App.jsx` |
 | `user_signed_in` | User successfully signs in with email and password | `components/login-form.jsx` |
 | `user_signed_up` | User successfully creates an account | `components/signup-form.jsx` |
 | `user_signed_out` | User signs out of their account | `entrypoints/popup/Profile.jsx` |

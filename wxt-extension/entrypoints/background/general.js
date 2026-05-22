@@ -103,7 +103,7 @@ export function initGeneralHandlers() {
       hasPressedCaptureTabButton: false,
     });
 
-    // start onboarding
+    // Open the website tutorial.
     await chrome.tabs.create({
       url: `${WEBSITE_URL}/try?source=install`,
     });
