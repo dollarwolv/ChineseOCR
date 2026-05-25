@@ -71,7 +71,7 @@ export function initGeneralHandlers() {
       cropYEnd: undefined,
       serverProcessingEnabled: true,
       devSettingsEnabled: false,
-      ocrSpeed: 2,
+      ocrSpeed: 4,
       maxDim: 800,
       downscaleFurther: true,
       applyThresh: false,
