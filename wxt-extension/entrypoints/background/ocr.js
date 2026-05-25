@@ -103,6 +103,42 @@ function cropFromCanvas(sourceCanvas, startX, startY, endX, endY) {
   return croppedCanvas;
 }
 
+function clamp(value, min, max) {
+  // Keep a number inside an allowed range. For example, clamp(-5, 0, 100)
+  // returns 0, and clamp(130, 0, 100) returns 100.
+  return Math.max(min, Math.min(max, value));
+}
+
+function normalizeCropRect(cropRect, cssW, cssH) {
+  // Crop overrides come from content scripts, so validate and clamp them before
+  // drawing into an OffscreenCanvas.
+  if (!cropRect) {
+    return null;
+  }
+
+  // X coordinates must stay between the left and right viewport edges.
+  const cropXStart = clamp(Number(cropRect.cropXStart), 0, cssW);
+  const cropXEnd = clamp(Number(cropRect.cropXEnd), 0, cssW);
+  // Y coordinates must stay between the top and bottom viewport edges.
+  const cropYStart = clamp(Number(cropRect.cropYStart), 0, cssH);
+  const cropYEnd = clamp(Number(cropRect.cropYEnd), 0, cssH);
+
+  if (
+    ![cropXStart, cropYStart, cropXEnd, cropYEnd].every(Number.isFinite) ||
+    cropXEnd - cropXStart < 20 ||
+    cropYEnd - cropYStart < 20
+  ) {
+    return null;
+  }
+
+  return {
+    cropXStart,
+    cropYStart,
+    cropXEnd,
+    cropYEnd,
+  };
+}
+
 function grayscaleAndOptionalThreshold(
   ctx,
   w,
@@ -227,6 +263,11 @@ async function ensureOffscreen() {
 
 export function initOcrHandlers() {
   onMessage("CAPTURE_TAB", async ({ data }) => {
+    // Tutorial scans use a one-shot crop and should not leave crop mode enabled.
+    const shouldDisableCropAfterCapture = Boolean(
+      data?.disableCropAfterCapture,
+    );
+
     try {
       // take screenshot, data gets stored in dataURL
       const dataUrl = await chrome.tabs.captureVisibleTab();
@@ -247,6 +288,18 @@ export function initOcrHandlers() {
         "cropXEnd",
         "cropYEnd",
       ]);
+      const cropOverride = normalizeCropRect(
+        data?.cropOverride,
+        data.cssW,
+        data.cssH,
+      );
+      // Prefer the one-shot tutorial crop, otherwise fall back to stored user
+      // crop settings.
+      const effectiveCropEnabled = Boolean(cropOverride || crop);
+      const effectiveCropXStart = cropOverride?.cropXStart ?? cropXStart;
+      const effectiveCropYStart = cropOverride?.cropYStart ?? cropYStart;
+      const effectiveCropXEnd = cropOverride?.cropXEnd ?? cropXEnd;
+      const effectiveCropYEnd = cropOverride?.cropYEnd ?? cropYEnd;
 
       if (serverProcessingEnabled) {
         // test that checks if env variable has been found
@@ -285,11 +338,11 @@ export function initOcrHandlers() {
           data.cssH,
           {
             ...cloudPreprocessingSettings,
-            crop: crop,
-            startX: crop ? cropXStart : 0,
-            startY: crop ? cropYStart : 0,
-            endX: crop ? cropXEnd : data.cssW,
-            endY: crop ? cropYEnd : data.cssH,
+            crop: effectiveCropEnabled,
+            startX: effectiveCropEnabled ? effectiveCropXStart : 0,
+            startY: effectiveCropEnabled ? effectiveCropYStart : 0,
+            endX: effectiveCropEnabled ? effectiveCropXEnd : data.cssW,
+            endY: effectiveCropEnabled ? effectiveCropYEnd : data.cssH,
           },
         );
 
@@ -357,9 +410,9 @@ export function initOcrHandlers() {
           mode: "server_ocr",
           result: result.result.res,
           scalingFactor,
-          crop: crop,
-          startX: cropXStart,
-          startY: cropYStart,
+          crop: effectiveCropEnabled,
+          startX: effectiveCropEnabled ? effectiveCropXStart : 0,
+          startY: effectiveCropEnabled ? effectiveCropYStart : 0,
         };
 
         // if server processing is DISABLED (local processing):
@@ -373,13 +426,13 @@ export function initOcrHandlers() {
             imgFormat: "png",
             downscaleFurther: false,
             convertToGrayscale: false,
-            crop: crop,
+            crop: effectiveCropEnabled,
             applyThresh: true,
             thresh: 128,
-            startX: crop ? cropXStart : 0,
-            startY: crop ? cropYStart : 0,
-            endX: crop ? cropXEnd : data.cssW,
-            endY: crop ? cropYEnd : data.cssH,
+            startX: effectiveCropEnabled ? effectiveCropXStart : 0,
+            startY: effectiveCropEnabled ? effectiveCropYStart : 0,
+            endX: effectiveCropEnabled ? effectiveCropXEnd : data.cssW,
+            endY: effectiveCropEnabled ? effectiveCropYEnd : data.cssH,
           });
 
         // await downloadDataUrl(outDataUrl);
@@ -403,9 +456,9 @@ export function initOcrHandlers() {
           mode: "local_ocr",
           result,
           scalingFactor,
-          crop,
-          startX: cropXStart,
-          startY: cropYStart,
+          crop: effectiveCropEnabled,
+          startX: effectiveCropEnabled ? effectiveCropXStart : 0,
+          startY: effectiveCropEnabled ? effectiveCropYStart : 0,
         };
       }
     } catch (err) {
@@ -414,6 +467,12 @@ export function initOcrHandlers() {
         ok: false,
         error: err instanceof Error ? err.message : String(err),
       };
+    } finally {
+      if (shouldDisableCropAfterCapture) {
+        // Reset only the crop-mode flag; stored crop dimensions remain available
+        // for users who intentionally configured them later.
+        await chrome.storage.sync.set({ crop: false });
+      }
     }
   });
 }

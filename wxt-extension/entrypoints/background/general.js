@@ -2,6 +2,9 @@ import { syncCloudOcrFreeUseCount } from "./cloudOcrUsage";
 import { captureEvent } from "../../lib/posthog";
 
 const DEFAULT_CAPTION_TEXT_COLOR = "#f8fafc";
+const WEBSITE_URL = (
+  import.meta.env.VITE_WEBSITE_URL || "https://www.zhonglens.dev"
+).replace(/\/$/, "");
 
 async function ensureInstallTrackingState({ syncUsage = false } = {}) {
   const syncStorage = await chrome.storage.sync.get([
@@ -68,7 +71,7 @@ export function initGeneralHandlers() {
       cropYEnd: undefined,
       serverProcessingEnabled: true,
       devSettingsEnabled: false,
-      ocrSpeed: 2,
+      ocrSpeed: 4,
       maxDim: 800,
       downscaleFurther: true,
       applyThresh: false,
@@ -80,6 +83,7 @@ export function initGeneralHandlers() {
       closeOCRShortcut: ["ctrl", "l"],
       openCropShortcut: ["ctrl", "u"],
       closeCropShortcut: ["ctrl", "i"],
+      hasPressedCaptureTabButton: false,
     };
 
     chrome.storage.sync.set(defaultSettings);
@@ -96,10 +100,12 @@ export function initGeneralHandlers() {
 
     await chrome.storage.sync.set({
       hasCompletedOnboarding: false,
+      hasPressedCaptureTabButton: false,
     });
 
+    // Open the website tutorial.
     await chrome.tabs.create({
-      url: chrome.runtime.getURL("/onboarding.html"),
+      url: `${WEBSITE_URL}/try?source=install`,
     });
 
     void captureEvent("installed");

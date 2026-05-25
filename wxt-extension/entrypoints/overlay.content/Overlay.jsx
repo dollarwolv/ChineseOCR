@@ -18,6 +18,49 @@ import OverlayToolbar from "./OverlayToolbar";
 const OVERLAY_CHROME_REVEAL_DELAY_MS = 50;
 const TOOLBAR_AUTO_HIDE_DELAY_MS = 50;
 const TOOLBAR_AUTO_SHOW_DELAY_MS = 100;
+const TRY_PAGE_HOSTS = new Set([
+  "zhonglens.dev",
+  "www.zhonglens.dev",
+  "localhost",
+  "127.0.0.1",
+]);
+// The try page marks the demo frame so tutorial instructions are not OCR'd.
+const TRY_PAGE_DEMO_TARGET_SELECTOR = "[data-zhonglens-demo-target]";
+
+function isTryPage() {
+  const normalizedPathname = window.location.pathname.replace(/\/$/, "");
+
+  return (
+    normalizedPathname === "/try" && TRY_PAGE_HOSTS.has(window.location.hostname)
+  );
+}
+
+function postTryPageEvent(payload) {
+  if (!isTryPage()) return;
+
+  window.postMessage(
+    {
+      source: "zhonglens-extension",
+      version: 1,
+      ...payload,
+    },
+    window.location.origin,
+  );
+}
+
+function notifyTryPageOcrCompleted({ mode, textBlocksCount }) {
+  postTryPageEvent({
+    type: "ZHONGLENS_OCR_COMPLETED",
+    processing_mode: mode,
+    text_blocks_count: textBlocksCount,
+  });
+}
+
+function notifyTryPageOcrTextHovered() {
+  postTryPageEvent({
+    type: "ZHONGLENS_OCR_TEXT_HOVERED",
+  });
+}
 
 function waitForNextPaint() {
   return new Promise((resolve) => {
@@ -25,6 +68,41 @@ function waitForNextPaint() {
       requestAnimationFrame(resolve);
     });
   });
+}
+
+function getTryPageDemoCropOverride({ cssW, cssH }) {
+  // Only the /try demo gets an automatic crop; normal pages use settings.
+  if (!isTryPage()) {
+    return null;
+  }
+
+  const target = document.querySelector(TRY_PAGE_DEMO_TARGET_SELECTOR);
+  const rect = target?.getBoundingClientRect();
+
+  if (!rect) {
+    return null;
+  }
+
+  const visualViewport = window.visualViewport;
+  const viewportOffsetX = visualViewport?.offsetLeft ?? 0;
+  const viewportOffsetY = visualViewport?.offsetTop ?? 0;
+  // Convert the target's viewport rect into the CSS-pixel crop coordinates
+  // expected by the background OCR pipeline.
+  const cropXStart = Math.max(0, Math.floor(rect.left - viewportOffsetX));
+  const cropYStart = Math.max(0, Math.floor(rect.top - viewportOffsetY));
+  const cropXEnd = Math.min(cssW, Math.ceil(rect.right - viewportOffsetX));
+  const cropYEnd = Math.min(cssH, Math.ceil(rect.bottom - viewportOffsetY));
+
+  if (cropXEnd - cropXStart < 20 || cropYEnd - cropYStart < 20) {
+    return null;
+  }
+
+  return {
+    cropXStart,
+    cropYStart,
+    cropXEnd,
+    cropYEnd,
+  };
 }
 
 export default ({ onClose }) => {
@@ -42,6 +120,7 @@ export default ({ onClose }) => {
   const [overlayChromeVisible, setOverlayChromeVisible] = useState(false);
   const [toolbarAutoHidden, setToolbarAutoHidden] = useState(false);
   const overlayChromeTimerRef = useRef(null);
+  const tryPageOnboardingCompletedRef = useRef(false);
   // The auto-hide refs keep delayed hover work predictable. React state drives
   // rendering, while these refs let timeout/event callbacks see the latest
   // timer, current state, and already-scheduled state without re-rendering.
@@ -93,8 +172,20 @@ export default ({ onClose }) => {
     }, OVERLAY_CHROME_REVEAL_DELAY_MS);
     setLoading(true);
     const { cssW, cssH } = getViewportCssSize();
+    // On /try, crop this one scan to the demo frame so changing instructions
+    // never become part of the OCR result.
+    const cropOverride = getTryPageDemoCropOverride({ cssW, cssH });
     setStatus("Processing image...");
-    const res = await sendMessage("CAPTURE_TAB", { cssW, cssH }, "background");
+    const res = await sendMessage(
+      "CAPTURE_TAB",
+      {
+        cssW,
+        cssH,
+        cropOverride,
+        disableCropAfterCapture: Boolean(cropOverride),
+      },
+      "background",
+    );
     if (!res.ok) {
       const fullErrorCode = res?.error || "OCR failed.";
       const eventProperties = await getOcrAnalyticsProperties({
@@ -187,6 +278,10 @@ export default ({ onClose }) => {
     setLoading(false);
     setOverlayChromeVisible(true);
     window.clearTimeout(overlayChromeTimerRef.current);
+    notifyTryPageOcrCompleted({
+      mode,
+      textBlocksCount: data.length,
+    });
   }
 
   async function updateOverlaySetting(updates) {
@@ -329,6 +424,16 @@ export default ({ onClose }) => {
     };
 
     const handleOcrTextHover = (event) => {
+      notifyTryPageOcrTextHovered();
+
+      if (isTryPage() && !tryPageOnboardingCompletedRef.current) {
+        tryPageOnboardingCompletedRef.current = true;
+        chrome.storage.sync.set({ hasCompletedOnboarding: true }).catch(() => {
+          tryPageOnboardingCompletedRef.current = false;
+        });
+        void captureEvent("onboarding_completed", { source: "try_page" });
+      }
+
       // lightDomTextLayer decides whether the hovered OCR text sits in the
       // toolbar's area. Bottom-third text asks the toolbar to fade out.
       updateToolbarAutoHiddenAfterDelay(
