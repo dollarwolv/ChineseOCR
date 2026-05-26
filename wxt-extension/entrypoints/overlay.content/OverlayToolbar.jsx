@@ -16,6 +16,7 @@ export default function OverlayToolbar({
   cropModeEnabled,
   cloudOcrEnabled,
   showCloudUsage,
+  showCloudOcrSwitch = true,
   cloudOcrRemainingCount,
   scanAgainDisabled,
   hidden,
@@ -84,17 +85,19 @@ export default function OverlayToolbar({
               </span>
             </div>
           )}
-          <ToolbarSwitch
-            label="Cloud"
-            active={cloudOcrEnabled}
-            activeIcon={<Cloud className="size-[13px]" />}
-            inactiveIcon={<CloudOff className="size-[13px]" />}
-            badge={showCloudUsage ? cloudOcrRemainingCount : null}
-            disabled={loading}
-            onClick={() => {
-              void onToggleCloudOcrMode();
-            }}
-          />
+          {showCloudOcrSwitch && (
+            <ToolbarSwitch
+              label="Cloud"
+              active={cloudOcrEnabled}
+              activeIcon={<Cloud className="size-[13px]" />}
+              inactiveIcon={<CloudOff className="size-[13px]" />}
+              badge={showCloudUsage ? cloudOcrRemainingCount : null}
+              disabled={loading}
+              onClick={() => {
+                void onToggleCloudOcrMode();
+              }}
+            />
+          )}
           <ToolbarIconButton
             label="Scan again"
             disabled={scanAgainDisabled}

@@ -26,6 +26,11 @@ import { Link } from "react-router";
 import { useEffect, useState } from "react";
 import { captureEvent } from "@/lib/posthog";
 import { getOcrAnalyticsProperties } from "@/lib/ocrAnalytics";
+import {
+  getExperimentVariant,
+  OCR_MODE_PLACEMENT_EXPERIMENT,
+  OCR_MODE_PLACEMENT_VARIANTS,
+} from "@/lib/experiments";
 
 const WEBSITE_URL = (
   import.meta.env.VITE_WEBSITE_URL || "https://www.zhonglens.dev"
@@ -34,6 +39,7 @@ const TRY_PAGE_URL = `${WEBSITE_URL}/try`;
 
 function App() {
   const [settings, setSettings] = useState({});
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [error, setError] = useState("");
   const [cropOverlayOpen, setCropOverlayOpen] = useState(false);
   const [OCROverlayOpen, setOCROverlayOpen] = useState(false);
@@ -213,8 +219,15 @@ function App() {
 
   useEffect(() => {
     (async () => {
+      const experimentVariant = await getExperimentVariant(
+        OCR_MODE_PLACEMENT_EXPERIMENT,
+      );
       const settingsFromStorage = await chrome.storage.sync.get(null);
-      setSettings(settingsFromStorage);
+      setSettings({
+        ...settingsFromStorage,
+        [OCR_MODE_PLACEMENT_EXPERIMENT.storageKey]: experimentVariant,
+      });
+      setSettingsLoaded(true);
       setCloudOcrFreeUseCount(
         Number(settingsFromStorage.cloudOcrFreeUseCount) || 0,
       );
@@ -258,10 +271,11 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (!settingsLoaded) return;
     console.log(settings);
     chrome.storage.sync.set(settings);
     console.log("settings saved");
-  }, [settings]);
+  }, [settingsLoaded, settings]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -274,6 +288,9 @@ function App() {
   const cloudOcrRemainingCount = getRemainingCloudOcrUses(cloudOcrFreeUseCount);
   const cropModeEnabled = Boolean(settings.crop);
   const cloudOcrEnabled = Boolean(settings.serverProcessingEnabled);
+  const showCloudOcrSwitch =
+    settings[OCR_MODE_PLACEMENT_EXPERIMENT.storageKey] !==
+    OCR_MODE_PLACEMENT_VARIANTS.CLOUD_FIRST;
   const hasPressedCaptureTabButton = Boolean(
     settings.hasPressedCaptureTabButton,
   );
@@ -326,6 +343,10 @@ function App() {
           position: "top-center",
           duration: 1500,
         });
+  }
+
+  if (!settingsLoaded) {
+    return <div className="w-86 p-4 text-center text-sm">Loading...</div>;
   }
 
   return (
@@ -425,63 +446,68 @@ function App() {
               </p>
             </TooltipContent>
           </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={cloudOcrEnabled}
-                aria-label={
-                  cloudOcrEnabled
-                    ? "Cloud OCR is enabled"
-                    : "Local OCR is enabled"
-                }
-                className="relative flex cursor-pointer flex-col items-center justify-center rounded p-1.5 transition-shadow hover:shadow"
-                onClick={toggleCloudOcrMode}
-              >
-                {!isSubscribed && cloudOcrEnabled && (
-                  <span className="pointer-events-none absolute -top-1 right-0 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-black px-1 text-[10px] font-semibold text-white shadow">
-                    {cloudOcrRemainingCount}
-                  </span>
-                )}
-                <span
-                  className={`relative flex h-6 w-12 items-center rounded-full border px-1 text-[10px] font-medium transition-colors ${
+          {showCloudOcrSwitch && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={cloudOcrEnabled}
+                  aria-label={
                     cloudOcrEnabled
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-input bg-muted text-muted-foreground"
-                  }`}
+                      ? "Cloud OCR is enabled"
+                      : "Local OCR is enabled"
+                  }
+                  className="relative flex cursor-pointer flex-col items-center justify-center rounded p-1.5 transition-shadow hover:shadow"
+                  onClick={toggleCloudOcrMode}
                 >
+                  {!isSubscribed && cloudOcrEnabled && (
+                    <span className="pointer-events-none absolute -top-1 right-0 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-black px-1 text-[10px] font-semibold text-white shadow">
+                      {cloudOcrRemainingCount}
+                    </span>
+                  )}
                   <span
-                    className={`bg-background text-foreground absolute top-0 flex size-5.5 items-center justify-center rounded-full shadow transition-[left] ${
-                      cloudOcrEnabled ? "left-[calc(100%-1.375rem)]" : "left-0"
+                    className={`relative flex h-6 w-12 items-center rounded-full border px-1 text-[10px] font-medium transition-colors ${
+                      cloudOcrEnabled
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-input bg-muted text-muted-foreground"
                     }`}
                   >
-                    {cloudOcrEnabled ? (
-                      <Cloud className="size-4" />
-                    ) : (
-                      <CloudOff className="size-4" />
-                    )}
+                    <span
+                      className={`bg-background text-foreground absolute top-0 flex size-5.5 items-center justify-center rounded-full shadow transition-[left] ${
+                        cloudOcrEnabled
+                          ? "left-[calc(100%-1.375rem)]"
+                          : "left-0"
+                      }`}
+                    >
+                      {cloudOcrEnabled ? (
+                        <Cloud className="size-4" />
+                      ) : (
+                        <CloudOff className="size-4" />
+                      )}
+                    </span>
                   </span>
-                </span>
-                <span className="text-sm">Cloud OCR</span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="flex flex-col items-center">
-              <p>Local: fast, less accurate</p>
-              <p>Cloud: slower, more accurate</p>
-              {isSubscribed ? (
-                <p>Supporter: unlimited cloud OCR scans</p>
-              ) : (
-                <>
-                  <p>
-                    {cloudOcrEnabled
-                      ? cloudOcrRemainingCount + " free cloud scans remaining"
-                      : "Currently using Local OCR."}
-                  </p>
-                </>
-              )}
-            </TooltipContent>
-          </Tooltip>
+                  <span className="text-sm">Cloud OCR</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="flex flex-col items-center">
+                <p>Local: fast, less accurate</p>
+                <p>Cloud: slower, more accurate</p>
+                {isSubscribed ? (
+                  <p>Supporter: unlimited cloud OCR scans</p>
+                ) : (
+                  <>
+                    <p>
+                      {cloudOcrEnabled
+                        ? cloudOcrRemainingCount +
+                          " free cloud scans remaining"
+                        : "Currently using Local OCR."}
+                    </p>
+                  </>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          )}
           <Link
             to={"/settings"}
             className="flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"

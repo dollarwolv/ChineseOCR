@@ -8,6 +8,11 @@ import {
   NO_TEXT_FOUND_ERROR,
 } from "@/lib/ocrAnalytics";
 import {
+  getExperimentVariant,
+  OCR_MODE_PLACEMENT_EXPERIMENT,
+  OCR_MODE_PLACEMENT_VARIANTS,
+} from "@/lib/experiments";
+import {
   OCR_TEXT_HOVER_END_EVENT,
   OCR_TEXT_HOVER_EVENT,
   removeLightDomTextLayer,
@@ -129,8 +134,14 @@ export default ({ onClose }) => {
   const pendingToolbarAutoHiddenRef = useRef(null);
 
   async function getSettings() {
+    const experimentVariant = await getExperimentVariant(
+      OCR_MODE_PLACEMENT_EXPERIMENT,
+    );
     const response = await chrome.storage.sync.get(null);
-    setSettings(response);
+    setSettings({
+      ...response,
+      [OCR_MODE_PLACEMENT_EXPERIMENT.storageKey]: experimentVariant,
+    });
     setMode(response.serverProcessingEnabled ? "Cloud OCR" : "Local OCR");
     return response;
   }
@@ -502,6 +513,9 @@ export default ({ onClose }) => {
     settings.cloudOcrFreeUseCount,
   );
   const showCloudUsage = cloudOcrEnabled && !isSubscribed;
+  const showCloudOcrSwitch =
+    settings[OCR_MODE_PLACEMENT_EXPERIMENT.storageKey] !==
+    OCR_MODE_PLACEMENT_VARIANTS.CLOUD_FIRST;
   const scanAgainDisabled =
     loading ||
     (!data.length && !error) ||
@@ -588,6 +602,7 @@ export default ({ onClose }) => {
           cropModeEnabled={cropModeEnabled}
           cloudOcrEnabled={cloudOcrEnabled}
           showCloudUsage={showCloudUsage}
+          showCloudOcrSwitch={showCloudOcrSwitch}
           cloudOcrRemainingCount={cloudOcrRemainingCount}
           scanAgainDisabled={scanAgainDisabled}
           hidden={overlayToolbarHidden}

@@ -1,5 +1,6 @@
 import { syncCloudOcrFreeUseCount } from "./cloudOcrUsage";
 import { captureEvent } from "../../lib/posthog";
+import { ensureActiveExperimentAssignments } from "../../lib/experiments";
 
 const DEFAULT_CAPTION_TEXT_COLOR = "#f8fafc";
 const WEBSITE_URL = (
@@ -30,6 +31,8 @@ async function ensureInstallTrackingState({ syncUsage = false } = {}) {
   if (shouldSyncUsage) {
     await syncCloudOcrFreeUseCount();
   }
+
+  await ensureActiveExperimentAssignments();
 }
 
 export function initGeneralHandlers() {

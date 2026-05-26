@@ -19,6 +19,44 @@ import { useEffect, useState, useMemo } from "react";
 import { useRecordHotkeys } from "react-hotkeys-hook";
 
 import ShortcutRecorder from "./ShortcutRecorder";
+import { captureEvent } from "@/lib/posthog";
+import {
+  getExperimentVariant,
+  OCR_MODE_PLACEMENT_EXPERIMENT,
+  OCR_MODE_PLACEMENT_VARIANTS,
+} from "@/lib/experiments";
+
+function ServerProcessingField({ settings, setSettings }) {
+  function toggleServerProcessing() {
+    const newEnabled = !settings.serverProcessingEnabled;
+    setSettings({
+      ...settings,
+      serverProcessingEnabled: newEnabled,
+    });
+    void captureEvent("cloud_ocr_toggled", { enabled: newEnabled });
+  }
+
+  return (
+    <Field orientation="vertical" className="">
+      <div className="flex gap-3">
+        <Switch
+          id="enable-server-processing"
+          checked={settings.serverProcessingEnabled}
+          onCheckedChange={toggleServerProcessing}
+          name="enable-server-processing"
+        />
+        <FieldLabel htmlFor="enable-server-processing">
+          Enable server processing
+        </FieldLabel>
+      </div>
+      <FieldDescription>
+        By default, OCR is performed locally in your browser. However, server
+        processing is both quicker and more accurate. We don't store your
+        screenshot data.
+      </FieldDescription>
+    </Field>
+  );
+}
 
 function App() {
   const [hydrated, setHydrated] = useState(false);
@@ -63,9 +101,13 @@ function App() {
   };
 
   async function loadSettings() {
+    const experimentVariant = await getExperimentVariant(
+      OCR_MODE_PLACEMENT_EXPERIMENT,
+    );
     const settingsFromStorage = await chrome.storage.sync.get(null);
     setSettings({
       ...settingsFromStorage,
+      [OCR_MODE_PLACEMENT_EXPERIMENT.storageKey]: experimentVariant,
       ocrSpeed: Math.min(
         Math.max(Number(settingsFromStorage.ocrSpeed) || 2, 1),
         4,
@@ -91,35 +133,29 @@ function App() {
     return () => clearTimeout(timeout);
   }, [hydrated, settings]);
 
+  if (!hydrated) {
+    return <div className="w-100 p-4 text-center text-sm">Loading...</div>;
+  }
+
+  const showCloudOcrInDeveloperSettings =
+    settings[OCR_MODE_PLACEMENT_EXPERIMENT.storageKey] ===
+    OCR_MODE_PLACEMENT_VARIANTS.CLOUD_FIRST;
+  const showCloudOcrInMainSettings = !showCloudOcrInDeveloperSettings;
+
   return (
     <div className="w-100 p-4">
       <h1 className="mt-4 w-full text-center text-3xl font-bold">Settings</h1>
       <FieldGroup className="mt-8">
-        {/* server processing */}
-        <Field orientation="vertical" className="">
-          <div className="flex gap-3">
-            <Switch
-              id="enable-server-processing"
-              checked={settings.serverProcessingEnabled}
-              onCheckedChange={() =>
-                setSettings({
-                  ...settings,
-                  serverProcessingEnabled: !settings.serverProcessingEnabled,
-                })
-              }
-              name="enable-server-processing"
+        {/* In the control variant, this keeps the existing Settings placement. */}
+        {showCloudOcrInMainSettings && (
+          <>
+            <ServerProcessingField
+              settings={settings}
+              setSettings={setSettings}
             />
-            <FieldLabel htmlFor="enable-server-processing">
-              Enable server processing
-            </FieldLabel>
-          </div>
-          <FieldDescription>
-            By default, OCR is performed locally in your browser. However,
-            server processing is both quicker and more accurate. We don't store
-            your screenshot data.
-          </FieldDescription>
-        </Field>
-        <FieldSeparator />
+            <FieldSeparator />
+          </>
+        )}
         {/* OCR speed/accuracy tradeoff */}
         <Field>
           <FieldTitle>OCR Speed/Accuracy</FieldTitle>
@@ -257,6 +293,16 @@ function App() {
         <div>
           <h1 className="mt-8 text-3xl">Developer settings</h1>
           <FieldGroup className="mt-2">
+            {/* In cloud_first, the OCR mode switch is only available here. */}
+            {showCloudOcrInDeveloperSettings && (
+              <>
+                <ServerProcessingField
+                  settings={settings}
+                  setSettings={setSettings}
+                />
+                <FieldSeparator />
+              </>
+            )}
             {/* max image dims */}
             <Field orientation="vertical" className="mt-6">
               <div className="flex gap-3">

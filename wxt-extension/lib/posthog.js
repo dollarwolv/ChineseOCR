@@ -1,3 +1,5 @@
+import { getActiveExperimentAnalyticsProperties } from "@/lib/experiments";
+
 const POSTHOG_KEY = import.meta.env.VITE_PUBLIC_POSTHOG_KEY;
 const POSTHOG_HOST = import.meta.env.VITE_PUBLIC_POSTHOG_HOST;
 
@@ -75,12 +77,23 @@ async function getExtensionContext() {
   };
 }
 
+async function getExperimentContext() {
+  try {
+    return await getActiveExperimentAnalyticsProperties();
+  } catch (error) {
+    // Experiment tagging should not prevent analytics events from being sent.
+    console.warn("[posthog] failed to load experiment properties", error);
+    return {};
+  }
+}
+
 async function sendEvent(event, properties = {}, distinctId) {
   // PostHog's capture API needs three things: api_key, event, and distinct_id.
 
   const propertiesWithContext = {
     ...properties,
     ...(await getExtensionContext()),
+    ...(await getExperimentContext()),
   };
 
   const body = {
