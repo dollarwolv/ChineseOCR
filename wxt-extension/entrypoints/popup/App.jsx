@@ -376,7 +376,7 @@ function App() {
       <div className="flex w-full flex-row items-center justify-center gap-5">
         <img src="/icon/128.png" alt="ZhongLens logo" className="w-10" />
 
-        <h1 className="text-2xl">ZhongLens v0.3</h1>
+        <h1 className="text-2xl">ZhongLens v0.3.1</h1>
       </div>
       <div
         className={`relative mx-auto ${showCaptureTabArrow ? "mt-5" : ""} flex flex-col items-center justify-center`}
