@@ -25,6 +25,7 @@ import { sendMessage } from "webext-bridge/popup";
 import { Link } from "react-router";
 import { useEffect, useState } from "react";
 import { captureEvent } from "@/lib/posthog";
+import { formatShortcut } from "@/lib/shortcuts";
 import { getOcrAnalyticsProperties } from "@/lib/ocrAnalytics";
 import {
   getExperimentVariant,
@@ -294,6 +295,10 @@ function App() {
   const hasPressedCaptureTabButton = Boolean(
     settings.hasPressedCaptureTabButton,
   );
+  const startOcrShortcutLabel = formatShortcut(settings.openOCRShortcut, [
+    "ctrl",
+    "o",
+  ]);
   const showCaptureTabArrow =
     settings.hasCompletedOnboarding === false &&
     !hasPressedCaptureTabButton &&
@@ -373,17 +378,30 @@ function App() {
 
         <h1 className="text-2xl">ZhongLens v0.3</h1>
       </div>
-      <div className={`relative mx-auto ${showCaptureTabArrow ? "mt-5" : ""}`}>
+      <div
+        className={`relative mx-auto ${showCaptureTabArrow ? "mt-5" : ""} flex flex-col items-center justify-center`}
+      >
         {showCaptureTabArrow && <CaptureTabHint />}
-        <button
-          className="bg-beige flex h-50 cursor-pointer flex-col items-center justify-center rounded-lg px-3.5 py-2 shadow-lg"
-          onClick={() => controlOverlay("OCR")}
-        >
-          <img src={zhongLensIcon} className="w-35" alt="" />
-          <span className="text-2xl font-semibold whitespace-nowrap">
-            {OCROverlayOpen ? "Close overlay" : "Capture Tab"}
-          </span>
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              className="bg-beige flex h-50 w-fit cursor-pointer flex-col items-center justify-center rounded-lg px-3.5 py-2 shadow-lg"
+              onClick={() => controlOverlay("OCR")}
+            >
+              <img src={zhongLensIcon} className="w-35" alt="" />
+              <span className="text-2xl font-semibold whitespace-nowrap">
+                {OCROverlayOpen ? "Close overlay" : "Capture Tab"}
+              </span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent className="flex items-center gap-1.5 text-white/80">
+            <span className="">Hint: you can also press</span>
+            <kbd className="bg-muted text-foreground rounded border px-1.5 py-0.5 font-mono text-[10px]">
+              {startOcrShortcutLabel}
+            </kbd>
+            <span>to start OCR.</span>
+          </TooltipContent>
+        </Tooltip>
       </div>
       <div className="flex flex-col gap-2">
         {!settings?.hasCompletedOnboarding && (
@@ -499,8 +517,7 @@ function App() {
                   <>
                     <p>
                       {cloudOcrEnabled
-                        ? cloudOcrRemainingCount +
-                          " free cloud scans remaining"
+                        ? cloudOcrRemainingCount + " free cloud scans remaining"
                         : "Currently using Local OCR."}
                     </p>
                   </>

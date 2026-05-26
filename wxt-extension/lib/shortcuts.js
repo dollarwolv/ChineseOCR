@@ -7,6 +7,32 @@ export function toShortcutSet(shortcut, fallback) {
   return new Set(fallback);
 }
 
+export function formatShortcut(shortcut, fallback = []) {
+  const shortcutSet = toShortcutSet(shortcut, fallback);
+  const modifierOrder = ["ctrl", "meta", "alt", "shift"];
+  const orderedKeys = [
+    ...modifierOrder.filter((key) => shortcutSet.has(key)),
+    ...Array.from(shortcutSet).filter((key) => !modifierOrder.includes(key)),
+  ];
+
+  return orderedKeys.map(formatShortcutKey).join(" + ");
+}
+
+function formatShortcutKey(key) {
+  const labels = {
+    ctrl: "Ctrl",
+    meta: "Cmd",
+    alt: "Alt",
+    shift: "Shift",
+    escape: "Esc",
+    " ": "Space",
+  };
+
+  if (labels[key]) return labels[key];
+  if (key.length === 1) return key.toUpperCase();
+  return key[0].toUpperCase() + key.slice(1);
+}
+
 export function eventToSet(e) {
   const keys = new Set();
 
